@@ -1,0 +1,311 @@
+---
+title: host.json reference for Azure Functions 2.x
+description: Reference documentation for the Azure Functions host.json file with the v2 runtime.
+ms.topic: conceptual
+ms.date: 09/08/2018
+---
+
+# host.json reference for Azure Functions 2.x and later 
+
+> [!div class="op_single_selector" title1="Select the version of the Azure Functions runtime you are using: "]
+> * [Version 1](functions-host-json-v1.md)
+> * [Version 2](functions-host-json.md)
+
+The *host.json* metadata file contains global configuration options that affect all functions for a function app. This article lists the settings that are available starting with version 2.x of the Azure Functions runtime.  
+
+> [!NOTE]
+> This article is for Azure Functions 2.x and later versions.  For a reference of host.json in Functions 1.x, see [host.json reference for Azure Functions 1.x](functions-host-json-v1.md).
+
+Other function app configuration options are managed in your [app settings](functions-app-settings.md).
+
+Some host.json settings are only used when running locally in the [local.settings.json](functions-run-local.md#local-settings-file) file.
+
+## Sample host.json file
+
+The following sample *host.json* files have all possible options specified.
+
+```json
+{
+    "version": "2.0",
+    "aggregator": {
+        "batchSize": 1000,
+        "flushTimeout": "00:00:30"
+    },
+    "extensions": {
+        "cosmosDb": {},
+        "durableTask": {},
+        "eventHubs": {},
+        "http": {},
+        "queues": {},
+        "sendGrid": {},
+        "serviceBus": {}
+    },
+    "extensionBundle": {
+        "id": "Microsoft.Azure.Functions.ExtensionBundle",
+        "version": "[1.*, 2.0.0)"
+    },
+    "functions": [ "QueueProcessor", "GitHubWebHook" ],
+    "functionTimeout": "00:05:00",
+    "healthMonitor": {
+        "enabled": true,
+        "healthCheckInterval": "00:00:10",
+        "healthCheckWindow": "00:02:00",
+        "healthCheckThreshold": 6,
+        "counterThreshold": 0.80
+    },
+    "logging": {
+        "fileLoggingMode": "debugOnly",
+        "logLevel": {
+          "Function.MyFunction": "Information",
+          "default": "None"
+        },
+        "applicationInsights": {
+            "samplingSettings": {
+              "isEnabled": true,
+              "maxTelemetryItemsPerSecond" : 20
+            }
+        }
+    },
+    "managedDependency": {
+        "enabled": true
+    },
+    "singleton": {
+      "lockPeriod": "00:00:15",
+      "listenerLockPeriod": "00:01:00",
+      "listenerLockRecoveryPollingInterval": "00:01:00",
+      "lockAcquisitionTimeout": "00:01:00",
+      "lockAcquisitionPollingInterval": "00:00:03"
+    },
+    "watchDirectories": [ "Shared", "Test" ]
+}
+```
+
+The following sections of this article explain each top-level property. All are optional unless otherwise indicated.
+
+## aggregator
+
+[!INCLUDE [aggregator](../../includes/functions-host-json-aggregator.md)]
+
+## applicationInsights
+
+This setting is a child of [logging](#logging).
+
+Controls options for Application Insights, including [sampling options](./functions-monitoring.md#configure-sampling).
+
+```json
+{
+    "applicationInsights": {        
+        "enableDependencyTracking": true,
+        "enablePerformanceCountersCollection": true,
+        "samplingExcludedTypes": "Trace;Exception",
+        "samplingIncludedTypes": "Request;Dependency",
+        "samplingSettings": {
+          "isEnabled": true,
+          "maxTelemetryItemsPerSecond" : 20
+        }
+    }
+}
+```
+
+> [!NOTE]
+> Log sampling may cause some executions to not show up in the Application Insights monitor blade.
+
+|Property  |Default | Description |
+|---------|---------|---------| 
+|enableDependencyTracking|true|Enables dependency tracking.|
+|enablePerformanceCountersCollection|true|Enables performance counters collection.|
+|samplingExcludedTypes|null|A semi-colon delimited list of types that you do not want to be sampled. Recognized types are: Dependency, Event, Exception, PageView, Request, Trace. All instances of the specified types are transmitted; the types that are not specified are sampled.| 
+|samplingIncludedTypes|null|A semi-colon delimited list of types that you want to be sampled. Recognized types are: Dependency, Event, Exception, PageView, Request, Trace. The specified types are sampled; all instances of the other types will always be transmitted.|
+|samplingSettings.isEnabled|true|Enables or disables sampling.| 
+|samplingSettings.maxTelemetryItemsPerSecond|20|The threshold at which sampling begins.|
+
+## cosmosDb
+
+Configuration setting can be found in [Cosmos DB triggers and bindings](functions-bindings-cosmosdb-v2.md#host-json).
+
+## durableTask
+
+Configuration setting can be found in [bindings for Durable Functions](durable/durable-functions-bindings.md#host-json).
+
+## eventHub
+
+Configuration settings can be found in [Event Hub triggers and bindings](functions-bindings-event-hubs.md#host-json). 
+
+## extensions
+
+Property that returns an object that contains all of the binding-specific settings, such as [http](#http) and [eventHub](#eventhub).
+
+## extensionBundle 
+
+Extension bundles lets you add a compatible set of Functions binding extensions to your function app. To learn more, see [Extension bundles for local development](functions-bindings-register.md#extension-bundles).
+
+[!INCLUDE [functions-extension-bundles-json](../../includes/functions-extension-bundles-json.md)]
+
+## functions
+
+A list of functions that the job host runs. An empty array means run all functions. Intended for use only when [running locally](functions-run-local.md). In function apps in Azure, you should instead follow the steps in [How to disable functions in Azure Functions](disable-function.md) to disable specific functions rather than using this setting.
+
+```json
+{
+    "functions": [ "QueueProcessor", "GitHubWebHook" ]
+}
+```
+
+## functionTimeout
+
+Indicates the timeout duration for all functions. It follows the timespan string format. In a serverless Consumption plan, the valid range is from 1 second to 10 minutes, and the default value is 5 minutes.  
+
+In the Premium plan the valid range is from 1 second to 60 minutes, and the default value is 30 minutes.
+
+In a Dedicated (App Service) plan, there is no overall limit, and the default value is 30 minutes. A value of `-1` indicates unbounded execution, but keeping a fixed upper bound is recommended.
+
+```json
+{
+    "functionTimeout": "00:05:00"
+}
+```
+
+## healthMonitor
+
+Configuration settings for [Host health monitor](https://github.com/Azure/azure-webjobs-sdk-script/wiki/Host-Health-Monitor).
+
+```
+{
+    "healthMonitor": {
+        "enabled": true,
+        "healthCheckInterval": "00:00:10",
+        "healthCheckWindow": "00:02:00",
+        "healthCheckThreshold": 6,
+        "counterThreshold": 0.80
+    }
+}
+```
+
+|Property  |Default | Description |
+|---------|---------|---------| 
+|enabled|true|Specifies whether the feature is enabled. | 
+|healthCheckInterval|10 seconds|The time interval between the periodic background health checks. | 
+|healthCheckWindow|2 minutes|A sliding time window used in conjunction with the `healthCheckThreshold` setting.| 
+|healthCheckThreshold|6|Maximum number of times the health check can fail before a host recycle is initiated.| 
+|counterThreshold|0.80|The threshold at which a performance counter will be considered unhealthy.| 
+
+## http
+
+Configuration settings can be found in [http triggers and bindings](functions-bindings-http-webhook.md#hostjson-settings).
+
+## logging
+
+Controls the logging behaviors of the function app, including Application Insights.
+
+```json
+"logging": {
+    "fileLoggingMode": "debugOnly"
+    "logLevel": {
+      "Function.MyFunction": "Information",
+      "default": "None"
+    },
+    "console": {
+        ...
+    },
+    "applicationInsights": {
+        ...
+    }
+}
+```
+
+|Property  |Default | Description |
+|---------|---------|---------|
+|fileLoggingMode|debugOnly|Defines what level of file logging is enabled.  Options are `never`, `always`, `debugOnly`. |
+|logLevel|n/a|Object that defines the log category filtering for functions in the app. Versions 2.x and later follow the ASP.NET Core layout for log category filtering. This lets you filter logging for specific functions. For more information, see [Log filtering](https://docs.microsoft.com/aspnet/core/fundamentals/logging/?view=aspnetcore-2.1#log-filtering) in the ASP.NET Core documentation. |
+|console|n/a| The [console](#console) logging setting. |
+|applicationInsights|n/a| The [applicationInsights](#applicationinsights) setting. |
+
+## console
+
+This setting is a child of [logging](#logging). It controls the console logging when not in debugging mode.
+
+```json
+{
+    "logging": {
+    ...
+        "console": {
+          "isEnabled": "false"
+        },
+    ...
+    }
+}
+```
+
+|Property  |Default | Description |
+|---------|---------|---------| 
+|isEnabled|false|Enables or disables console logging.| 
+
+## managedDependency
+
+Managed dependency is a feature that is currently only supported with PowerShell based functions. It enables dependencies to be automatically managed by the service. When the `enabled` property is set to `true`, the `requirements.psd1` file is processed. Dependencies are updated when any minor versions are released. For more information, see [Managed dependency](functions-reference-powershell.md#dependency-management) in the PowerShell article.
+
+```json
+{
+    "managedDependency": {
+        "enabled": true
+    }
+}
+```
+
+## queues
+
+Configuration settings can be found in [Storage queue triggers and bindings](functions-bindings-storage-queue.md#host-json).  
+
+## sendGrid
+
+Configuration setting can be found in [SendGrid triggers and bindings](functions-bindings-sendgrid.md#host-json).
+
+## serviceBus
+
+Configuration setting can be found in [Service Bus triggers and bindings](functions-bindings-service-bus.md#host-json).
+
+## singleton
+
+Configuration settings for Singleton lock behavior. For more information, see [GitHub issue about singleton support](https://github.com/Azure/azure-webjobs-sdk-script/issues/912).
+
+```json
+{
+    "singleton": {
+      "lockPeriod": "00:00:15",
+      "listenerLockPeriod": "00:01:00",
+      "listenerLockRecoveryPollingInterval": "00:01:00",
+      "lockAcquisitionTimeout": "00:01:00",
+      "lockAcquisitionPollingInterval": "00:00:03"
+    }
+}
+```
+
+|Property  |Default | Description |
+|---------|---------|---------| 
+|lockPeriod|00:00:15|The period that function level locks are taken for. The locks auto-renew.| 
+|listenerLockPeriod|00:01:00|The period that listener locks are taken for.| 
+|listenerLockRecoveryPollingInterval|00:01:00|The time interval used for listener lock recovery if a listener lock couldn't be acquired on startup.| 
+|lockAcquisitionTimeout|00:01:00|The maximum amount of time the runtime will try to acquire a lock.| 
+|lockAcquisitionPollingInterval|n/a|The interval between lock acquisition attempts.| 
+
+## version
+
+The version string `"version": "2.0"` is required for a function app that targets the v2 runtime.
+
+## watchDirectories
+
+A set of [shared code directories](functions-reference-csharp.md#watched-directories) that should be monitored for changes.  Ensures that when code in these directories is changed, the changes are picked up by your functions.
+
+```json
+{
+    "watchDirectories": [ "Shared" ]
+}
+```
+
+## Next steps
+
+> [!div class="nextstepaction"]
+> [Learn how to update the host.json file](functions-reference.md#fileupdate)
+
+> [!div class="nextstepaction"]
+> [See global settings in environment variables](functions-app-settings.md)
